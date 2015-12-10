@@ -68,7 +68,7 @@ class ParseCronSchedule
         if ($testTimestamp == null) {
             $testTimestamp = time();
         }
-        
+
         $cronFireTime = [
            'parseMinute' => [(int)date('i', $testTimestamp), $expressionElements[0]],
            'parseHour' => [(int)date('G', $testTimestamp), $expressionElements[1]],
@@ -83,10 +83,11 @@ class ParseCronSchedule
         // we find a no-match, and throw an exception if the element isn't valid...
         foreach ($cronFireTime AS $checkMethod => $validValue) {
             $expandedExpressionElement = $this->$checkMethod($validValue[1]);
-            if ($expandedExpressionElement !== false && !in_array($validValue[0], $expandedExpressionElement)) {
-                return false;
-            } else {
+            if ($expandedExpressionElement === false) {
                 throw new Exception('Invalid cron expression: invalid segment for ' . $checkMethod);
+            }
+            if (!in_array($validValue[0], $expandedExpressionElement)) {
+                return false;
             }
         }
         // If we get to here without returning or throwing an exception then this
@@ -101,13 +102,11 @@ class ParseCronSchedule
      * @param string $minute String representation of the minute element of a cron expression.
      * @return array A full array of the minutes which are represented by the $minute expression.
      *
+     * Minute can only contain standard characters between 0 and 59...
      */
     public function parseMinute($minute)
     {
-
-        // Minute can only contain standard characters between 0 and 59...
         return $this->_parseStandardCharacters($minute, 0, 59);
-
     }
 
     /**
@@ -117,13 +116,11 @@ class ParseCronSchedule
      * @param string $hour String representation of the hour element of a cron expression.
      * @return array A full array of the hours which are represented by the $hour expression.
      *
+     * Hours can only contain standard characters betwen 0 and 23...
      */
     public function parseHour($hour)
     {
-
-        // Hours can only contain standard characters betwen 0 and 23...
         return $this->_parseStandardCharacters($hour, 0, 23);
-
     }
 
     /**
@@ -133,13 +130,11 @@ class ParseCronSchedule
      * @param string $dayOfMonth String representation of the DoM element of a cron expression.
      * @return array A full array of the DoMs which are represented by the $dayOfMonth expression.
      *
+     * DoM can only contain standard characters betwen 1 and 31...
      */
     public function parseDoM($dayOfMonth)
     {
-
-        // DoM can only contain standard characters betwen 1 and 31...
         return $this->_parseStandardCharacters($dayOfMonth, 1, 31);
-
     }
 
     /**
@@ -148,14 +143,11 @@ class ParseCronSchedule
      *
      * @param string $month String representation of the month element of a cron expression.
      * @return array A full array of the months which are represented by the $month expression.
-     *
+     * Month can only contain standard characters betwen 1 and 12...
      */
     public function parseMonth($month)
     {
-
-        // DoM can only contain standard characters betwen 1 and 12...
         return $this->_parseStandardCharacters($month, 1, 12);
-
     }
 
     /**
@@ -164,14 +156,11 @@ class ParseCronSchedule
      *
      * @param string $dayOfWeek String representation of the day of week element of a cron expression.
      * @return array A full array of the DoWs which are represented by the $dayOfWeek expression.
-     *
+     * DoW can only contain standard characters betwen 0 and 6...
      */
     public function parseDoW($dayOfWeek)
     {
-
-        // DoW can only contain standard characters betwen 0 and 6...
         return $this->_parseStandardCharacters($dayOfWeek, 0, 6);
-
     }
 
     /**
@@ -184,93 +173,95 @@ class ParseCronSchedule
      */
     public function parseYear($year)
     {
-
-        // DoW can only contain standard characters betwen 0 and 6...
         return $this->_parseStandardCharacters($year, 1970, 2099);
-
     }
 
     /* Private and protected methods. */
 
+    private function validCharacterLimits($lowerLimit, $upperLimit)
+    {
+        return
+           isset($lowerLimit) && isset($upperLimit) &&
+           is_numeric($lowerLimit) && is_numeric($upperLimit) &&
+           $upperLimit > $lowerLimit;
+    }
+
+    /**
+     * @param $characterString
+     * @param $lowerLimit
+     * @param $upperLimit
+     * @return array
+     */
+    private function prepareNumbers($characterString, $lowerLimit, $upperLimit)
+    {
+        $numberArray = [];
+
+        // It could simply be one number...
+        if (is_numeric($characterString)) {
+            return [$characterString];
+        }
+
+        // Wildcard character
+        if ($characterString == '*') {
+            for ($i = $lowerLimit; $i <= $upperLimit; $i++) {
+                $numberArray[] = $i;
+            }
+            return $numberArray;
+        }
+
+        // Comma separated numbers
+        if (strpos($characterString, ',')) {
+            return explode(',', $characterString);
+        }
+
+        // If it looks like an increment style set of numbers...
+        if (preg_match('/[\*\d,-]+\/[\d,-]+/', $characterString)) {
+            $characterChunks = explode('/', $characterString);
+            $range = $this->_parseStandardCharacters($characterChunks[0], $lowerLimit, $upperLimit);
+            return $this->_rangeIncrement($range, $characterChunks[1]);
+        }
+
+        // Finally, if this is a range it's quite easy to deal with...
+        if (preg_match('/\d{1,2}-\d{1,2}/', $characterString)) {
+            $characterChunks = explode('-', $characterString);
+            if (($characterChunks[0] >= $lowerLimit) && ($characterChunks[0] <= $upperLimit) && ($characterChunks[1] >= $lowerLimit) && ($characterChunks[1] <= $upperLimit)) {
+                for ($i = intval($characterChunks[0]); $i <= intval($characterChunks[1]); $i++) {
+                    $numberArray[] = $i;
+                }
+            }
+        }
+        return $numberArray;
+    }
+
+    /**
+     * @param $characterString
+     * @param $lowerLimit
+     * @param $upperLimit
+     * @return array|bool
+     */
     protected function _parseStandardCharacters($characterString, $lowerLimit, $upperLimit)
     {
-
-        // Check the limits we have been passed...
-        if (isset($lowerLimit) && is_numeric($lowerLimit) && isset($upperLimit) && is_numeric($upperLimit)) {
-            if ($upperLimit > $lowerLimit) {
-
-                // Prepare the final array of numbers...
-                $numberArray = array();
-
-                // As wildcard is a special case, check for that first...
-                if ($characterString == '*') {
-                    for ($i = $lowerLimit; $i <= $upperLimit; $i++) {
-                        $numberArray[] = $i;
-                    }
-
-                    // If it's not * then parse what it actually is...
-                } else {
-
-                    // It could simply be one number...
-                    if (is_numeric($characterString)) {
-                        $numberArray = array($characterString);
-
-                        // Or it might be a comma separated list of numbers which we can explode...
-                    } else {
-                        if (strpos($characterString, ',')) {
-                            $numberArray = explode(',', $characterString);
-
-                            // Or it might be more complicated than that...
-                        } else {
-
-                            // If it looks like an increment style set of numbers...
-                            if (preg_match('/[\*\d,-]+\/[\d,-]+/', $characterString)) {
-                                $characterChunks = explode('/', $characterString);
-                                $range = $this->_parseStandardCharacters($characterChunks[0], $lowerLimit, $upperLimit);
-                                $numberArray = $this->_rangeIncrement($range, $characterChunks[1]);
-
-                                // Finally, if this is a range it's quite easy to deal with...
-                            } else {
-                                if (preg_match('/\d{1,2}-\d{1,2}/', $characterString)) {
-                                    $characterChunks = explode('-', $characterString);
-                                    if (($characterChunks[0] >= $lowerLimit) && ($characterChunks[0] <= $upperLimit) && ($characterChunks[1] >= $lowerLimit) && ($characterChunks[1] <= $upperLimit)) {
-                                        for ($i = intval($characterChunks[0]); $i <= intval($characterChunks[1]); $i++) {
-                                            $numberArray[] = $i;
-                                        }
-                                    }
-                                }
-                            }
-
-                        }
-                    }
-
-                }
-
-                // Now, it's possible that this array needs further parsing, so let's deal with that...
-                $sanitisedNumberArray = array();
-                foreach ($numberArray AS $numberValue) {
-                    if (!is_numeric($numberValue)) {
-                        $functionName = __FUNCTION__;
-                        $sanitisedNumberArray = array_merge($sanitisedNumberArray, $this->$functionName($numberValue, $lowerLimit, $upperLimit));
-                    } else {
-                        if (($numberValue >= $lowerLimit) && ($numberValue <= $upperLimit)) {
-                            $sanitisedNumberArray[] = intval($numberValue);
-                        }
-                    }
-                }
-
-                // And finally dedupe and sort the array before returning it...
-                $sanitisedNumberArray = array_values(array_unique($sanitisedNumberArray));
-                sort($sanitisedNumberArray, SORT_NUMERIC);
-                return $sanitisedNumberArray;
-
-            } else {
-                return false;
-            }
-        } else {
+        if (!$this->validCharacterLimits($lowerLimit, $upperLimit)) {
             return false;
         }
 
+        $numberArray = $this->prepareNumbers($characterString, $lowerLimit, $upperLimit);
+
+        // Now, it's possible that this array needs further parsing, so let's deal with that...
+        $sanitisedNumberArray = array();
+        foreach ($numberArray AS $numberValue) {
+            if (!is_numeric($numberValue)) {
+                $functionName = __FUNCTION__;
+                $sanitisedNumberArray = array_merge($sanitisedNumberArray, $this->$functionName($numberValue, $lowerLimit, $upperLimit));
+            } elseif (($numberValue >= $lowerLimit) && ($numberValue <= $upperLimit)) {
+                $sanitisedNumberArray[] = intval($numberValue);
+            }
+        }
+
+        // And finally dedupe and sort the array before returning it...
+        $sanitisedNumberArray = array_values(array_unique($sanitisedNumberArray));
+        sort($sanitisedNumberArray, SORT_NUMERIC);
+        return $sanitisedNumberArray;
     }
 
     /**
