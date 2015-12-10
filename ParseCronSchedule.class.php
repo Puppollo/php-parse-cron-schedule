@@ -60,15 +60,15 @@ class ParseCronSchedule
         // Explode the cron expression, and check it's got enough parts...
         $expressionElements = preg_split('/\s+/', $cronExpression);
 
-        if ((count($expressionElements) < 5) && (count($expressionElements) > 6)) {
+        if ((count($expressionElements) < 5) || (count($expressionElements) > 6)) {
             throw new Exception('Invalid cron expression: must contain 4 or 5 elements');
         }
-
 
         // Set up an array with the time we are checking against...
         if ($testTimestamp == null) {
             $testTimestamp = time();
         }
+        
         $cronFireTime = [
            'parseMinute' => [(int)date('i', $testTimestamp), $expressionElements[0]],
            'parseHour' => [(int)date('G', $testTimestamp), $expressionElements[1]],
@@ -82,10 +82,9 @@ class ParseCronSchedule
         // for the time we are checking against. We'll return false immediatly if
         // we find a no-match, and throw an exception if the element isn't valid...
         foreach ($cronFireTime AS $checkMethod => $validValue) {
-            if (($expandedExpressionElement = $this->$checkMethod($validValue[1])) !== false) {
-                if (!in_array($validValue[0], $expandedExpressionElement)) {
-                    return false;
-                }
+            $expandedExpressionElement = $this->$checkMethod($validValue[1]);
+            if ($expandedExpressionElement !== false && !in_array($validValue[0], $expandedExpressionElement)) {
+                return false;
             } else {
                 throw new Exception('Invalid cron expression: invalid segment for ' . $checkMethod);
             }
