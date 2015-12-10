@@ -1,24 +1,5 @@
 <?php
-
-#
-#  ParseCronSchedule.class.php
-#
-#  Copyright 2012 - 2014, Jonathon Wardman. All rights reserved.
-#  Contact: jonathon@flutt.co.uk / flutt.co.uk
-#
-#  This program is free software: you can redistribute it and/or modify
-#  it under the terms of the GNU Lesser General Public License as published by
-#  the Free Software Foundation, either version 3 of the License, or
-#  (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU Lesser General Public License for more details.
-#
-#  You should have received a copy of the GNU Lesser General Public License
-#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
+namespace Wardman;
 
 /**
  *
@@ -61,7 +42,7 @@ class ParseCronSchedule
         $expressionElements = preg_split('/\s+/', $cronExpression);
 
         if ((count($expressionElements) < 5) || (count($expressionElements) > 6)) {
-            throw new Exception('Invalid cron expression: must contain 4 or 5 elements');
+            throw new \Exception('Invalid cron expression: must contain 4 or 5 elements');
         }
 
         // Set up an array with the time we are checking against...
@@ -84,7 +65,7 @@ class ParseCronSchedule
         foreach ($cronFireTime AS $checkMethod => $validValue) {
             $expandedExpressionElement = $this->$checkMethod($validValue[1]);
             if ($expandedExpressionElement === false) {
-                throw new Exception('Invalid cron expression: invalid segment for ' . $checkMethod);
+                throw new \Exception('Invalid cron expression: invalid segment for ' . $checkMethod);
             }
             if (!in_array($validValue[0], $expandedExpressionElement)) {
                 return false;
@@ -279,7 +260,6 @@ class ParseCronSchedule
      */
     private function _rangeIncrement(array $range, $increment)
     {
-
         // Prepare the array to return...
         $returnArray = array();
 
@@ -297,7 +277,5 @@ class ParseCronSchedule
         // Sort and return the result...
         sort($returnArray, SORT_NUMERIC);
         return $returnArray;
-
     }
-
 }

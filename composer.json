@@ -1,0 +1,21 @@
+{
+  "name": "Wardman/ParseCronSchedule",
+  "description": "",
+  "license": "LGPL-3.0",
+  "minimum-stability": "dev",
+  "authors": [
+    {
+      "name": "Jonathon Wardman",
+      "email": "jonathon@flutt.co.uk"
+    },
+    {
+      "name": "A. Nazarov",
+      "email": "a.nazarov@advmaker.net"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "Advmaker\\": "src"
+    }
+  }
+}
