@@ -1,5 +1,5 @@
 {
-  "name": "Wardman/ParseCronSchedule",
+  "name": "Puppollo/ParseCronSchedule",
   "description": "",
   "license": "LGPL-3.0",
   "minimum-stability": "dev",
@@ -15,7 +15,7 @@
   ],
   "autoload": {
     "psr-4": {
-      "Wardman\\": "src"
+      "Puppollo\\": "src"
     }
   }
 }

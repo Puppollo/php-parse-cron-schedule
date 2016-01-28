@@ -1,31 +1,16 @@
-<?php
-namespace Wardman;
+<?php namespace Puppollo;
 
 /**
+ * Class ParseCronSchedule
  *
  * Parses cron schedule segments and can return information relating to when
  * cron jobs should be run.
  *
+ * @package Puppollo
  */
 class ParseCronSchedule
 {
-
-    /* Magic methods. */
-
-    public function __construct()
-    {
-
-    }
-
-    public function __destruct()
-    {
-
-    }
-
-    /* Public methods. */
-
     /**
-     *
      * Checks if a specific cron schedule line would mean the job should be run
      * at this, or a defined, time. If no time to test against is set then the
      * current time will be used for the comparison.
@@ -51,12 +36,12 @@ class ParseCronSchedule
         }
 
         $cronFireTime = [
-           'parseMinute' => [(int)date('i', $testTimestamp), $expressionElements[0]],
-           'parseHour' => [(int)date('G', $testTimestamp), $expressionElements[1]],
-           'parseDoM' => [(int)date('j', $testTimestamp), $expressionElements[2]],
-           'parseMonth' => [(int)date('n', $testTimestamp), $expressionElements[3]],
-           'parseDoW' => [(int)date('w', $testTimestamp), $expressionElements[4]],
-           'parseYear' => [(int)date('Y', $testTimestamp), (isset($expressionElements[5]) ? $expressionElements[5] : date('Y', $testTimestamp))],
+            'parseMinute' => [(int)date('i', $testTimestamp), $expressionElements[0]],
+            'parseHour' => [(int)date('G', $testTimestamp), $expressionElements[1]],
+            'parseDoM' => [(int)date('j', $testTimestamp), $expressionElements[2]],
+            'parseMonth' => [(int)date('n', $testTimestamp), $expressionElements[3]],
+            'parseDoW' => [(int)date('w', $testTimestamp), $expressionElements[4]],
+            'parseYear' => [(int)date('Y', $testTimestamp), (isset($expressionElements[5]) ? $expressionElements[5] : date('Y', $testTimestamp))],
         ];
 
         // Now work through the parts of the expression and check if they are valid
@@ -77,7 +62,6 @@ class ParseCronSchedule
     }
 
     /**
-     *
      * Parses the minute section of a crontab line (the first field).
      *
      * @param string $minute String representation of the minute element of a cron expression.
@@ -91,13 +75,11 @@ class ParseCronSchedule
     }
 
     /**
-     *
      * Parses the hour section of a crontab line (the second field).
+     * Hours can only contain standard characters betwen 0 and 23...
      *
      * @param string $hour String representation of the hour element of a cron expression.
      * @return array A full array of the hours which are represented by the $hour expression.
-     *
-     * Hours can only contain standard characters betwen 0 and 23...
      */
     public function parseHour($hour)
     {
@@ -105,13 +87,11 @@ class ParseCronSchedule
     }
 
     /**
-     *
      * Parses the day of month of a crontab line (the third field).
+     * DoM can only contain standard characters betwen 1 and 31...
      *
      * @param string $dayOfMonth String representation of the DoM element of a cron expression.
      * @return array A full array of the DoMs which are represented by the $dayOfMonth expression.
-     *
-     * DoM can only contain standard characters betwen 1 and 31...
      */
     public function parseDoM($dayOfMonth)
     {
@@ -119,7 +99,6 @@ class ParseCronSchedule
     }
 
     /**
-     *
      * Parses the month of a crontab line (the fourth field).
      *
      * @param string $month String representation of the month element of a cron expression.
@@ -132,7 +111,6 @@ class ParseCronSchedule
     }
 
     /**
-     *
      * Parses the day of week of a crontab line (the fith field).
      *
      * @param string $dayOfWeek String representation of the day of week element of a cron expression.
@@ -145,26 +123,27 @@ class ParseCronSchedule
     }
 
     /**
-     *
      * Parses the year of a crontab line (the sixth field).
      *
      * @param string $year String representation of the year element of a cron expression.
      * @return array A full array of the years which are represented by the $year expression.
-     *
      */
     public function parseYear($year)
     {
         return $this->_parseStandardCharacters($year, 1970, 2099);
     }
 
-    /* Private and protected methods. */
-
+    /**
+     * @param $lowerLimit
+     * @param $upperLimit
+     * @return bool
+     */
     private function validCharacterLimits($lowerLimit, $upperLimit)
     {
         return
-           isset($lowerLimit) && isset($upperLimit) &&
-           is_numeric($lowerLimit) && is_numeric($upperLimit) &&
-           $upperLimit > $lowerLimit;
+            isset($lowerLimit) && isset($upperLimit) &&
+            is_numeric($lowerLimit) && is_numeric($upperLimit) &&
+            $upperLimit > $lowerLimit;
     }
 
     /**
@@ -187,6 +166,7 @@ class ParseCronSchedule
             for ($i = $lowerLimit; $i <= $upperLimit; $i++) {
                 $numberArray[] = $i;
             }
+
             return $numberArray;
         }
 
@@ -199,6 +179,7 @@ class ParseCronSchedule
         if (preg_match('/[\*\d,-]+\/[\d,-]+/', $characterString)) {
             $characterChunks = explode('/', $characterString);
             $range = $this->_parseStandardCharacters($characterChunks[0], $lowerLimit, $upperLimit);
+
             return $this->_rangeIncrement($range, $characterChunks[1]);
         }
 
@@ -211,6 +192,7 @@ class ParseCronSchedule
                 }
             }
         }
+
         return $numberArray;
     }
 
@@ -229,7 +211,7 @@ class ParseCronSchedule
         $numberArray = $this->prepareNumbers($characterString, $lowerLimit, $upperLimit);
 
         // Now, it's possible that this array needs further parsing, so let's deal with that...
-        $sanitisedNumberArray = array();
+        $sanitisedNumberArray = [];
         foreach ($numberArray AS $numberValue) {
             if (!is_numeric($numberValue)) {
                 $functionName = __FUNCTION__;
@@ -242,11 +224,11 @@ class ParseCronSchedule
         // And finally dedupe and sort the array before returning it...
         $sanitisedNumberArray = array_values(array_unique($sanitisedNumberArray));
         sort($sanitisedNumberArray, SORT_NUMERIC);
+
         return $sanitisedNumberArray;
     }
 
     /**
-     *
      * Returns all the values in the $range array which are valid for the given
      * value of $increment. The lowest numeric value of $rage is used as the
      * first entry in the returned array. For example, if $range holds numbers
@@ -256,12 +238,11 @@ class ParseCronSchedule
      * @param array $range Range to extract values from.
      * @param int $increment Frequency to select numbers from range.
      * @return array Values from $range which are valid based on $increment.
-     *
      */
     private function _rangeIncrement(array $range, $increment)
     {
         // Prepare the array to return...
-        $returnArray = array();
+        $returnArray = [];
 
         // Then sort and find the lowest value in the range...
         $rangeBase = min($range);
@@ -276,6 +257,7 @@ class ParseCronSchedule
 
         // Sort and return the result...
         sort($returnArray, SORT_NUMERIC);
+
         return $returnArray;
     }
 }
